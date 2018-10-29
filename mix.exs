@@ -16,13 +16,8 @@ defmodule Bow.Mixfile do
 
   def application do
     [
-      applications: [:logger, :plug, :tesla] ++ applications(Mix.env)
+      extra_applications: [:logger] ++ applications(Mix.env)
     ]
-
-    # TODO: Uncomment wneh dropping support for elixir 1.3
-    # [
-    #   extra_applications: [:logger] ++ applications(Mix.env)
-    # ]
   end
 
   defp elixirc_paths(:test), do: ["lib", "test/support"]
@@ -32,7 +27,7 @@ defmodule Bow.Mixfile do
     [
       :ecto, :postgrex,     # Bow.Ecto
       :erlexec,             # Bow.Exec
-      :hackney, :sweet_xml  # Bow.Storage.S3
+      :hackney # Bow.Storage.S3
     ]
   end
   defp applications(_), do: []
@@ -40,17 +35,17 @@ defmodule Bow.Mixfile do
   defp deps do
     [
       {:plug,     "~> 1.0"},
-      {:tesla,    "~> 0.7", github: "teamon/tesla", branch: "master"},
+      {:httpoison, "~> 1.4"},
 
-      {:ecto,       ">= 2.0.0 and < 2.2.0", optional: true},
-      {:erlexec,    "~> 1.7.0", optional: true},
+      {:ecto,       ">= 2.0.0 and < 3.0.0", optional: true},
+      {:erlexec,    "~> 1.9.0", optional: true},
       {:ex_aws,     "~> 2.0", optional: true},
       {:ex_aws_s3,  "~> 2.0", optional: true},
-      {:sweet_xml,  "~> 0.6.5", optional: true},
 
       # testing & docs
       {:postgrex,       ">= 0.0.0",  only: :test},
       {:coverex,        "~> 1.4.10", only: :test},
+      {:mock,           "~> 0.3.0",  only: :test},
       {:ex_doc,         "~> 0.16.1", only: :dev},
       {:mix_test_watch, "~> 0.5.0",  only: :dev},
       {:dialyxir,       "~> 0.5.1",  only: :dev}

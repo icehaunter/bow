@@ -1,25 +1,27 @@
 defmodule Bow.Download do
-  use Tesla
 
-  plug Tesla.Middleware.FollowRedirects
+  @http_adapter Application.get_env(:bow, :http_adapter, HTTPoison)
 
   @doc """
   Download file from given URL
   """
-  @spec download(client :: Tesla.Client.t | nil, url :: String.t) :: {:ok, Bow.t} | {:error, any}
-  def download(client \\ %Tesla.Client{}, url) do
-    case get(client, encode(url)) do
-      %{status: 200, url: url, body: body, headers: headers} ->
+  @spec download(url :: String.t, headers :: Keyword.t()) :: {:ok, Bow.t} | {:error, any}
+  def download(url, headers \\ []) do
+    url
+    |> encode
+    |> @http_adapter.get(headers, follow_redirect: true, max_redirect: 5)
+    |> case do
+      {:ok, %HTTPoison.Response{status_code: 200, headers: headers, body: body, request_url: url}} ->
         base = url |> URI.parse |> Map.get(:path) |> Path.basename
-        name = case Map.fetch(headers, "content-type") do
-          {:ok, content_type} ->
-            case MIME.extensions(content_type) do
-              [ext | _] -> Path.rootname(base) <> "." <> ext
-              _         -> base
-            end
-          :error ->
-            base
-        end
+
+        name =
+          headers
+          |> Enum.find_value(nil, fn {"Content-Type", type} -> type end)
+          |> MIME.extensions
+          |> case do
+            [ext | _] -> Path.rootname(base) <> "." <> ext
+            _ -> base
+          end
 
         path = Plug.Upload.random_file!("bow-download")
         case File.write(path, body) do
@@ -29,12 +31,9 @@ defmodule Bow.Download do
           {:error, reason} ->
             {:error, reason}
         end
-      env ->
-        {:error, env}
+      {:error, %HTTPoison.Error{reason: reason}} ->
+        {:error, reason}
     end
-  rescue
-    ex in Tesla.Error ->
-      {:error, ex}
   end
 
   defp encode(url), do: url |> URI.encode() |> String.replace(~r/%25([0-9a-f]{2})/i, "%\\g{1}")

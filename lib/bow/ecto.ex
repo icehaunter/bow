@@ -296,18 +296,18 @@ defmodule Bow.Ecto do
       |> cast(params, [:name, :avatar])
       |> Bow.Ecto.cast_uploads(params, [:avatar])
   """
-  def cast_uploads(changeset, params, fields, client \\ %Tesla.Client{}) do
-    Ecto.Changeset.cast(changeset, download_params(params, fields, client), fields)
+  def cast_uploads(changeset, params, fields) do
+    Ecto.Changeset.cast(changeset, download_params(params, fields), fields)
   end
 
-  def download_params(params, fields, client \\ %Tesla.Client{}) do
+  def download_params(params, fields) do
     Enum.reduce(fields, params, fn field, params ->
       field = to_string(field)
       case params["remote_#{field}_url"] do
         nil -> params
         ""  -> params
         url ->
-          case Bow.Download.download(client, url) do
+          case Bow.Download.download(url) do
             {:ok, file} -> Map.put(params, field, file)
             _           -> params
           end
